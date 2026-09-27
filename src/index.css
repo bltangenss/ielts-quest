@@ -1,0 +1,113 @@
+@import url('https://fonts.bunny.net/css?family=outfit:400,500,600,700&family=bricolage-grotesque:500,700,800,900&family=jetbrains-mono:400,500,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   AURORA ACADEMY — bright, vibrant design system
+   ============================================================ */
+:root {
+  --porcelain: #F5F7FE;
+  --cloud:     #FFFFFF;
+  --mist:      #EDF1FC;
+  --ink:       #221A5B;
+  --slate:     #6A6F9C;
+  --iris:      #6D5EF6;
+  --grape:     #9A5CF6;
+  --blossom:   #FF5C9A;
+  --sun:       #FFB02E;
+  --mint:      #16C79A;
+  --coral:     #FF6B6B;
+  --border:    #E4E8F6;
+  --shadow-iris: 0 18px 40px -18px rgba(109, 94, 246, 0.45);
+  --shadow-soft: 0 12px 30px -12px rgba(34, 26, 91, 0.16);
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--porcelain);
+    background-image:
+      radial-gradient(1200px 600px at 12% -8%, rgba(109,94,246,0.10), transparent 60%),
+      radial-gradient(1000px 520px at 100% 0%, rgba(255,92,154,0.08), transparent 55%),
+      radial-gradient(900px 500px at 50% 120%, rgba(22,199,154,0.07), transparent 60%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: 'Outfit', system-ui, sans-serif;
+    margin: 0; padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: rgba(109,94,246,0.22); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--iris), var(--grape));
+    border-radius: 99px; border: 2px solid var(--porcelain);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+}
+
+@layer components {
+  .font-display { font-family: 'Bricolage Grotesque', 'Outfit', sans-serif; letter-spacing: -0.02em; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+  .aurora-text {
+    background: linear-gradient(100deg, var(--iris) 0%, var(--grape) 38%, var(--blossom) 72%, var(--sun) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .panel {
+    background: var(--cloud);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-soft);
+  }
+  .panel-glass {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 22px;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .btn-aurora {
+    background: linear-gradient(100deg, var(--iris), var(--grape));
+    color: #fff; border: none; border-radius: 14px;
+    font-weight: 700; cursor: pointer;
+    box-shadow: var(--shadow-iris);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-aurora:hover { transform: translateY(-2px); box-shadow: 0 22px 48px -16px rgba(109,94,246,0.55); }
+  .btn-ghost {
+    background: var(--cloud); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 14px; font-weight: 600; cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .btn-ghost:hover { transform: translateY(-2px); border-color: var(--iris); }
+
+  .card-common    { box-shadow: 0 10px 26px -12px rgba(148,163,184,0.55); border-color: #C7CEDE; }
+  .card-uncommon  { box-shadow: 0 12px 28px -12px rgba(22,199,154,0.55); border-color: #16C79A; }
+  .card-rare      { box-shadow: 0 12px 30px -12px rgba(56,132,255,0.55); border-color: #3B82F6; }
+  .card-epic      { box-shadow: 0 14px 32px -12px rgba(154,92,246,0.6); border-color: #9A5CF6; }
+  .card-legendary { box-shadow: 0 16px 36px -12px rgba(255,176,46,0.65); border-color: #FFB02E; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--iris);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--mist); color: var(--ink);
+    border-radius: 999px; padding: 4px 12px; font-size: .75rem; font-weight: 600;
+  }
+
+  .floaty { animation: floaty 6s ease-in-out infinite; }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .rise { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+}
