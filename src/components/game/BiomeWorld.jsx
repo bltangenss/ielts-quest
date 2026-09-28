@@ -4,6 +4,7 @@ import { getCardArt } from '../../data/cardArt';
 import { drawCreature } from './bestiary';
 import { biomeForRoom, isMiniBossRoom, biomeEnemyEmoji, paintDecor, stepWeather, paintWeather } from './biomes';
 import { rollWeaponDrop, starterWeaponFor } from './arenaWeapons';
+import { drawDetailedHeroModel } from './heroModel';
 import { Icon } from '../Icon';
 
 // ════════════════════════════════════════════════════════════════════
@@ -60,7 +61,7 @@ export const BiomeWorld = forwardRef(function BiomeWorld(
     if (cardImage) cardImage.src = cardArt.atlas;
     const starterWeapon = starterWeaponFor(hero.id);
     G.current = {
-      heroColor, isNinja, ninjaStyle, cardArt, cardImage, weapon: starterWeapon, weaponToast: 2.2,
+      heroId: hero.id, heroName: hero.name, heroRarity: hero.rarity, heroColor, isNinja, ninjaStyle, cardArt, cardImage, weapon: starterWeapon, weaponToast: 2.2,
       stats: {
         maxHP: hero.maxHP, hp: hero.maxHP, baseDmg: hero.attack, dmgMult: 1, fireBase: 0.5, fireMult: 1,
         shots: 1, spread: 0.18, pierce: isNinja ? 1 : 0, crit: isNinja ? 0.2 : 0.1, lifesteal: 0,
@@ -592,6 +593,7 @@ export const BiomeWorld = forwardRef(function BiomeWorld(
     for (const cl of g.clones) drawNinjaBody(ctx, X(cl.x), Y(cl.y), p.r, cl.face, p, g, pal || ninjaPalette('shadow'), (cl.life / cl.max) * .55, true, 0);
     for (const tr of p.trail) { ctx.globalAlpha = tr.life * .5; ctx.fillStyle = pal ? pal.trail : col; ctx.beginPath(); ctx.arc(X(tr.x), Y(tr.y), p.r, 0, 6.28); ctx.fill(); } ctx.globalAlpha = 1;
     const x = X(p.x), y = Y(p.y), r = p.r, bob = Math.sin(p.walkT) * 1.4, fl = p.flash > 0, blink = p.invuln > 0 && Math.floor(g.t * 14) % 2, alpha = blink ? .5 : 1;
+    if (drawDetailedHeroModel(ctx, g, x, y, r, alpha, bob, fl)) return;
     if (drawCardHero(ctx, g, x, y, r, alpha, bob, fl)) return;
     if (ninja) { const gg = ctx.createRadialGradient(x, y + bob, 0, x, y + bob, r * 2.2); gg.addColorStop(0, pal.aura); gg.addColorStop(1, pal.aura.replace(/[\d.]+\)$/, '0)')); ctx.globalAlpha = alpha; ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y + bob, r * 2.2, 0, 6.28); ctx.fill(); drawNinjaBody(ctx, x, y, r, p.face, p, g, pal, alpha, false, bob, fl); }
     else { ctx.globalAlpha = alpha * .4; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, y + r * .8, r, r * .4, 0, 0, 6.28); ctx.fill(); ctx.globalAlpha = alpha; ctx.fillStyle = fl ? '#fff' : col; ctx.fillRect(x - r + 2, y - 1 + bob, (r - 2) * 2, r + 1); ctx.fillStyle = fl ? '#fff' : '#F1C27D'; ctx.beginPath(); ctx.arc(x, y - r + bob, r - 2, 0, 6.28); ctx.fill(); const reach = r + 8 - (p.recoil > 0 ? 3 : 0); ctx.strokeStyle = shade(col, .4); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + p.aimX * (r + 1), y + p.aimY * (r + 1) + bob); ctx.lineTo(x + p.aimX * reach, y + p.aimY * reach + bob); ctx.stroke(); ctx.strokeStyle = '#F59E0B'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y + bob, r + 2, 0, 6.28); ctx.stroke(); }

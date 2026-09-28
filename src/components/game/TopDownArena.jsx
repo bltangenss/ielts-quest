@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { TYPE_COLORS } from '../../data/arenaAbilities';
+import { getCardArt } from '../../data/cardArt';
+import { drawDetailedHeroModel } from './heroModel';
 import { Icon } from '../Icon';
 
 // ════════════════════════════════════════════════════════════════════
@@ -41,10 +43,15 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
 
   // ── build entities ──
   useEffect(() => {
-    const heroes = playerTeam.map((c, i) => ({
-      name: c.name, emoji: c.emoji, type: c.type,
-      maxHP: c.maxHP, hp: c.maxHP, attack: c.attack, defense: c.defense, speed: c.speed || 50,
-    }));
+    const heroes = playerTeam.map((c) => {
+      const cardArt = getCardArt(c.id);
+      const cardImage = cardArt ? new Image() : null;
+      if (cardImage) cardImage.src = cardArt.atlas;
+      return {
+        id: c.id, name: c.name, emoji: c.emoji, type: c.type, rarity: c.rarity, cardArt, cardImage,
+        maxHP: c.maxHP, hp: c.maxHP, attack: c.attack, defense: c.defense, speed: c.speed || 50,
+      };
+    });
 
     const enemies = [];
     enemyCreatures.forEach((c, ci) => {
@@ -71,11 +78,12 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
       player: {
         ...hero0, x: RW / 2, y: RH - PAD - 10, vx: 0, vy: 0, r: 9,
         aimX: 0, aimY: -1, fireCd: 0, dashCd: 0, dashT: 0, invuln: 1, flash: 0,
+        face: 1, walkT: 0, recoil: 0, muzzle: 0, trail: [],
       },
       enemies, bullets: [], parts: [], floaters: [],
       torches: [{ x: PAD + 4, y: PAD + 4 }, { x: RW - PAD - 4, y: PAD + 4 }, { x: PAD + 4, y: RH - PAD - 4 }, { x: RW - PAD - 4, y: RH - PAD - 4 }],
       props: Array.from({ length: 5 }, () => ({ x: rnd(PAD + 14, RW - PAD - 14), y: rnd(PAD + 14, RH - PAD - 14), k: Math.random() < 0.5 ? 'barrel' : 'bones' })),
-      shake: 0, t: 0, banner: tier === 'boss' ? 'BOSS' : tier === 'elite' ? 'ELITE' : '', bannerT: 2.2,
+      shake: 0, t: 0, banner: tier === 'boss' ? `FLOOR ${floor}: BOSS` : tier === 'elite' ? `FLOOR ${floor}: ELITE` : `FLOOR ${floor}`, bannerT: 2.2,
     };
     ended.current = false;
     stats.current = { damageDealt: 0, enemiesDefeated: 0, abilitiesUsed: 0, damageTaken: 0 };
@@ -129,7 +137,7 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
           if (!ended.current) { ended.current = true; setTimeout(() => onDefeat?.(stats.current), 700); }
         } else {
           const h = st.heroes[st.heroIdx];
-          Object.assign(p, h, { x: RW / 2, y: RH - PAD - 10, vx: 0, vy: 0, r: 9, fireCd: 0, dashCd: 0, dashT: 0, invuln: 1.4, flash: 0, aimX: 0, aimY: -1 });
+          Object.assign(p, h, { x: RW / 2, y: RH - PAD - 10, vx: 0, vy: 0, r: 9, fireCd: 0, dashCd: 0, dashT: 0, invuln: 1.4, flash: 0, aimX: 0, aimY: -1, face: 1, walkT: 0, recoil: 0, muzzle: 0, trail: [] });
           floatTxt(p.x, p.y - 16, 'GO!', '#F59E0B', true);
         }
       }
@@ -167,6 +175,12 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
       if (p.flash > 0) p.flash -= dt;
       if (p.dashCd > 0) p.dashCd -= dt;
       if (p.dashT > 0) p.dashT -= dt;
+      if (p.recoil > 0) p.recoil -= dt;
+      if (p.muzzle > 0) p.muzzle -= dt;
+      if (ix || iy) {
+        p.walkT += dt * (p.dashT > 0 ? 18 : 10) * Math.min(1, Math.hypot(ix, iy));
+        if (Math.abs(ix) > 0.05) p.face = ix > 0 ? 1 : -1;
+      }
       if (dashReq.current && p.dashCd <= 0 && (ix || iy)) {
         p.dashT = .16; p.dashCd = 1.1; p.invuln = Math.max(p.invuln, .22);
         burst(p.x, p.y, '#fff', 10, 90);
@@ -175,6 +189,9 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
       const spd = (52 + p.speed * 0.5) * (p.dashT > 0 ? 4.2 : 1);
       p.x = clamp(p.x + ix * spd * dt, PAD + p.r, RW - PAD - p.r);
       p.y = clamp(p.y + iy * spd * dt, PAD + p.r, RH - PAD - p.r);
+      if (p.dashT > 0) p.trail.push({ x: p.x, y: p.y, life: 0.5 });
+      for (const tr of p.trail) tr.life -= dt * 1.9;
+      p.trail = p.trail.filter(tr => tr.life > 0);
 
       // ─ auto-aim + fire ─
       if (live.length) {
@@ -182,9 +199,11 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
         for (const e of live) { const d = (e.x - p.x) ** 2 + (e.y - p.y) ** 2; if (d < bd) { bd = d; tg = e; } }
         const ang = Math.atan2(tg.y - p.y, tg.x - p.x);
         p.aimX = Math.cos(ang); p.aimY = Math.sin(ang);
+        p.face = p.aimX >= 0 ? 1 : -1;
         p.fireCd -= dt;
         if (p.fireCd <= 0 && p.dashT <= 0) {
           p.fireCd = clamp(0.42 - p.speed / 400, 0.18, 0.5);
+          p.recoil = 0.1; p.muzzle = 0.08;
           const col = TYPE_COLORS[p.type] || '#F59E0B';
           st.bullets.push({ owner: 'p', x: p.x + p.aimX * p.r, y: p.y + p.aimY * p.r, vx: p.aimX * 190, vy: p.aimY * 190, r: 2.6, dmg: p.attack, color: col, life: 1.6 });
           burst(p.x + p.aimX * p.r, p.y + p.aimY * p.r, col, 3, 40);
@@ -244,6 +263,7 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
         ended.current = true; setTimeout(() => onVictory?.(stats.current), 700);
       }
 
+      // eslint-disable-next-line react-hooks/immutability
       render(ctx, st);
 
       // HUD (throttled)
@@ -353,6 +373,26 @@ export function TopDownArena({ playerTeam, enemyCreatures, tier = 'normal', floo
     ctx.globalAlpha = a;
 
     const flash = e.flash > 0;
+    if (isPlayer && !dead) {
+      drawDetailedHeroModel(ctx, {
+        p: e,
+        heroId: e.id,
+        heroName: e.name,
+        heroRarity: e.rarity,
+        heroColor: color,
+        isNinja: e.id === 'kage_severed' || e.id === 'raiden_ronin',
+        cardArt: e.cardArt,
+        cardImage: e.cardImage,
+        t: st.t,
+      }, x, y, r, a, bob, flash);
+      ctx.strokeStyle = e.invuln > 0 && Math.floor(st.t * 12) % 2 ? '#fff' : '#F59E0B';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, y + bob, r + 2, 0, 6.28);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      return;
+    }
     // body
     ctx.fillStyle = flash ? '#fff' : shade(color, -.15);
     ctx.fillRect(x - r + 1, y - 2 + bob, (r - 1) * 2, r + 2);
